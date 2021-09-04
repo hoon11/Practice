@@ -43,4 +43,49 @@ CHIP ALU {
 
     PARTS:
    // Put you code here:
+
+   /**
+    *   x1 = zx ? 0  : x
+    *   x2 = nx ? x1' : x1
+    *
+    *   y1 = zy ? 0  : y
+    *   y2 = ny ? y1' : y1
+    *
+    *   r  = f  ? x2 + y2(two's complement) : x2 * y2
+    *
+    *   out= no         ? r'    : r   
+    *   zr = out == 0   ? false : true
+    *   ng = out[15]    ? true  : false
+    */
+
+    // x1 = zx ? 0  : x 
+    Mux16(a=x, b[0..15]=false, sel=zx, out=x1);
+    
+    // x2 = nx ? x1' : x1
+    Not16(in=x1, out=notx1);
+    Mux16(a=x1, b=notx1, sel=nx, out=x2);
+
+    // y1 = zy ? 0  : y
+    Mux16(a=y, b[0..15]=false, sel=zy, out=y1);
+    
+    // y2 = ny ? y1' : y1
+    Not16(in=y1, out=noty1);
+    Mux16(a=y1, b=noty1, sel=ny, out=y2);
+
+    // r  = f  ? x2 + y2 : x2 * y2
+    And16(a=x2, b=y2, out=x2andy2);
+    Add16(a=x2, b=y2, out=x2plusy2);
+    Mux16(a=x2andy2, b=x2plusy2, sel=f, out=r);
+
+    // out= no         ? r'    : r 
+    Not16(in=r, out=notr);
+    // You must create the 8-bit buses from a chip output
+    Mux16(a=r, b=notr, sel=no, out=out, out[15]=sign, out[0..7]=lowBits, out[8..15]=highBits);
+    //  zr = out == 0   ? false : true
+    Or8Way(in=lowBits, out=low);
+    Or8Way(in=highBits, out=high);
+    Or(a=low, b=high, out=notzr);
+    Not(in=notzr, out=zr);
+    // ng = out[15]    ? true  : false
+    And(a=sign, b=true, out=ng);
 }
